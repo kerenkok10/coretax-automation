@@ -6,7 +6,6 @@
   "tenant_name": "NAMA TENANT",
   "tenant_npwp": "0000000000000000",
   "download_dir": "",
-  "chromedriver_path": "",
   "browser_headless": false,
   "selenium_timeout": 20,
   "captcha_retry": 5
