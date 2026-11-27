@@ -4,10 +4,11 @@
 
 **Download bukti potong & faktur pajak keluaran dari Coretax DJP secara otomatis, lalu rename faktur sesuai Customer ID.**
 
-![Platform](https://img.shields.io/badge/platform-Windows-0b5cad)
-![Python](https://img.shields.io/badge/python-3.x-0b5cad)
-![Selenium](https://img.shields.io/badge/selenium-4.18%2B-43b02a)
-[![Release](https://img.shields.io/github/v/release/kerenkok10/withholding-slip-coretax?color=0b5cad)](../../releases/latest)
+![Platform](https://img.shields.io/badge/platform-Windows-0b5cad?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0yIDMuNSAxMC41IDIuM3Y4LjRIMnpNMTEuNSAyLjIgMjIgLjd2MTBIMTEuNXpNMiAxMS43aDguNXY4LjRMMiAxOXpNMTEuNSAxMS43SDIydjExLjZsLTEwLjUtMS41eiIvPjwvc3ZnPg==)
+![Python](https://img.shields.io/badge/python-3.x-0b5cad?logo=python&logoColor=white)
+![Selenium](https://img.shields.io/badge/selenium-4.18%2B-43b02a?logo=selenium&logoColor=white)
+![Chrome](https://img.shields.io/badge/requires-Chrome-4285f4?logo=googlechrome&logoColor=white)
+[![Release](https://img.shields.io/github/v/release/kerenkok10/withholding-slip-coretax?color=0b5cad&logo=github&logoColor=white)](../../releases/latest)
 
 <br>
 
