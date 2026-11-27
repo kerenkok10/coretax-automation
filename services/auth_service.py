@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import time
 
 from selenium import webdriver
@@ -16,12 +15,8 @@ from services.session_service import load_session, save_session
 log = get_logger(__name__)
 
 
-class LoginError(Exception):
-    """Login gagal; pesan dipakai langsung sebagai alasan yang tampil ke user."""
-
-
-class InvalidCredentialsError(LoginError):
-    """NIK / kata sandi ditolak Coretax."""
+class InvalidCredentialsError(Exception):
+    pass
 
 
 def login(driver: webdriver.Chrome) -> bool:
@@ -33,14 +28,16 @@ def login(driver: webdriver.Chrome) -> bool:
 
     if load_session(driver) and is_logged_in(driver):
         log.info("Session lama masih valid.")
-        require_tenant(driver)
+        if not ensure_target_tenant(driver):
+            return False
         save_session(driver)
         return True
 
     try:
         if is_logged_in(driver):
             log.info("Session sudah login.")
-            require_tenant(driver)
+            if not ensure_target_tenant(driver):
+                return False
             save_session(driver)
             return True
 
@@ -61,10 +58,7 @@ def login(driver: webdriver.Chrome) -> bool:
 
         if not verify_altcha(driver):
             log.error("ALTCHA otomatis gagal.")
-            raise LoginError(
-                f"Verifikasi captcha (ALTCHA) gagal setelah {settings.captcha_retry} percobaan. "
-                "Coba lagi; kalau terus gagal, periksa koneksi internet."
-            )
+            return False
 
         wait.until(
             EC.element_to_be_clickable(
@@ -72,75 +66,33 @@ def login(driver: webdriver.Chrome) -> bool:
             )
         ).click()
         log.info("ALTCHA terverifikasi, login dikirim otomatis.")
-        wait.until(lambda d: login_succeeded(d) or login_alert_text(d))
-        alert = login_alert_text(driver)
-        if alert and not login_succeeded(driver):
-            if is_credential_error(alert):
-                raise InvalidCredentialsError(f"NIK atau password salah. Coretax menjawab: \"{alert}\"")
-            raise LoginError(f"Coretax menolak login: \"{alert}\"")
+        wait.until(
+            lambda current_driver: is_logged_in(current_driver)
+            or has_invalid_credentials(current_driver)
+        )
+        if has_invalid_credentials(driver):
+            raise InvalidCredentialsError
         log.info("Login berhasil.")
 
-        require_tenant(driver)
+        if not ensure_target_tenant(driver):
+            return False
         save_session(driver)
         return True
     except TimeoutException:
         log.error("Timeout saat login otomatis.")
-        alert = login_alert_text(driver)
-        raise LoginError(
-            f"Login tidak mendapat respons dari Coretax dalam {settings.selenium_timeout} detik"
-            + (f" (pesan di halaman: \"{alert}\")" if alert else "")
-            + ". Periksa koneksi internet atau coba lagi."
-        ) from None
+        return False
 
 
-def require_tenant(driver: webdriver.Chrome) -> None:
-    if not ensure_target_tenant(driver):
-        target = settings.tenant_name or settings.tenant_npwp
-        raise LoginError(f"Tenant '{target}' tidak ditemukan atau gagal dipilih. Cek Tenant Name dan Tenant NPWP.")
-
-
-ALERT_SELECTORS = (
-    ".coretax-login-alert #validationSummary, .coretax-login-alert #errorMessage, "
-    ".coretax-login-alert, .validation-summary-errors, .field-validation-error, "
-    ".alert-danger, .alert-error, .text-danger, [role='alert']"
-)
-
-
-def on_login_page(driver: webdriver.Chrome) -> bool:
-    return "account/login" in driver.current_url.lower()
-
-
-def login_succeeded(driver: webdriver.Chrome) -> bool:
-    """Berhasil hanya kalau sudah meninggalkan halaman login (navbar bisa ada di halaman login)."""
-    return not on_login_page(driver) and is_logged_in(driver)
-
-
-def login_alert_text(driver: webdriver.Chrome) -> str:
-    """Teks pesan error yang ditampilkan Coretax di halaman login (kosong kalau tidak ada)."""
-    if not on_login_page(driver):
-        return ""
-    seen: list[str] = []
-    # Coretax menyimpan pesan error sebagai JSON di <script id="coretaxValidationErrors">;
-    # toast di layar hilang setelah beberapa detik, script ini tidak.
-    raw = driver.execute_script(
-        "return document.getElementById('coretaxValidationErrors')?.textContent || ''"
+def has_invalid_credentials(driver: webdriver.Chrome) -> bool:
+    messages = driver.find_elements(
+        By.CSS_SELECTOR,
+        ".coretax-login-alert #validationSummary, .coretax-login-alert #errorMessage",
     )
-    try:
-        seen.extend(str(x).strip() for x in json.loads(raw) if str(x).strip())
-    except (ValueError, TypeError):
-        pass
-    if seen:
-        return " ".join(seen)
-    for m in driver.find_elements(By.CSS_SELECTOR, ALERT_SELECTORS):
-        text = m.text.strip().replace("\n", " ")
-        if text and text not in seen:
-            seen.append(text)
-    return " ".join(seen)
-
-
-def is_credential_error(text: str) -> bool:
-    low = text.casefold()
-    return ("kata sandi" in low or "password" in low) and ("tidak valid" in low or "salah" in low or "invalid" in low)
+    return any(
+        "kata sandi" in message.text.casefold()
+        and ("tidak valid" in message.text.casefold() or "salah" in message.text.casefold())
+        for message in messages
+    )
 
 
 def verify_altcha(driver: webdriver.Chrome) -> bool:

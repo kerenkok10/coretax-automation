@@ -441,8 +441,8 @@ class CoretaxApp:
         try:
             from main import run_app
 
-            exit_code, not_found, error = run_app(target_period=target_period, prompt_period=False, prompt_before_close=False, mode=mode)
-            self.root.after(0, self._finish, exit_code, not_found, error)
+            exit_code, not_found = run_app(target_period=target_period, prompt_period=False, prompt_before_close=False, mode=mode)
+            self.root.after(0, self._finish, exit_code, not_found)
         except Exception:
             logging.exception("Proses gagal.")
             self.root.after(0, self._finish, 1, [])
@@ -461,7 +461,7 @@ class CoretaxApp:
             logging.exception("OCR ke Excel gagal.")
             self.root.after(0, self._finish_ocr, None, exc)
 
-    def _finish(self, exit_code: int, not_found: list[str], error: str = "") -> None:
+    def _finish(self, exit_code: int, not_found: list[str]) -> None:
         self._busy(False)
         for button in self.start_buttons:
             button.configure(state="normal")
@@ -478,11 +478,11 @@ class CoretaxApp:
             self.status_var.set("Selesai")
             messagebox.showinfo(APP_TITLE, "Proses selesai.")
         elif exit_code == 2:
-            self.status_var.set("Login gagal: NIK atau password salah")
-            messagebox.showerror(APP_TITLE, (error or "NIK atau password salah.") + "\n\nPerbaiki NIK / Password di form, lalu coba lagi.")
+            self.status_var.set("Login gagal")
+            messagebox.showerror(APP_TITLE, "Password salah, silakan coba lagi.")
         else:
             self.status_var.set("Gagal. Cek log proses.")
-            messagebox.showerror(APP_TITLE, (error or "Proses gagal.") + "\n\nDetail lengkap ada di Log Proses.")
+            messagebox.showerror(APP_TITLE, "Proses gagal. Cek log proses.")
 
     def _finish_ocr(self, output_path: Path | None, error: Exception | None) -> None:
         self._busy(False)

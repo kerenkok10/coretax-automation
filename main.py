@@ -20,10 +20,10 @@ def run_app(
     prompt_period: bool = False,
     prompt_before_close: bool = False,
     mode: str = "bupot",
-) -> tuple[int, list[str], str]:
-    """Return (exit code, daftar Nomor Pemotongan tidak ditemukan, pesan error untuk user)."""
+) -> tuple[int, list[str]]:
+    """Return (exit code, daftar Nomor Pemotongan yang tidak ditemukan)."""
     from core.settings import reload_settings
-    from services.auth_service import InvalidCredentialsError, LoginError, login
+    from services.auth_service import InvalidCredentialsError, login
     from services.download_service import search_and_download, search_and_download_output_tax, wait_for_downloads
     from services.navigation_service import navigate_to_output_tax, navigate_to_withholding
     from utils.driver_utils import create_driver
@@ -50,9 +50,10 @@ def run_app(
     try:
         driver = create_driver()
 
-        login(driver)
+        if not login(driver):
+            return 1, []
         if not navigate(driver):
-            return 1, [], "Login berhasil, tapi gagal membuka menu Coretax yang dituju. Coba lagi; detailnya ada di Log Proses."
+            return 1, []
 
         count, not_found = search(driver)
 
@@ -62,17 +63,13 @@ def run_app(
         else:
             log.warning("Tidak ada file yang didownload.")
 
-        return 0, not_found, ""
-    except InvalidCredentialsError as exc:
-        log.error("%s", exc)
-        return 2, [], str(exc)
-    except LoginError as exc:
-        log.error("%s", exc)
-        return 1, [], str(exc)
+        return 0, not_found
+    except InvalidCredentialsError:
+        log.error("Username atau password salah.")
+        return 2, []
     except Exception as exc:
         log.error("Error tidak terduga: %s", exc, exc_info=True)
-        detail = str(exc).strip().splitlines()[0] if str(exc).strip() else type(exc).__name__
-        return 1, [], f"Terjadi error tidak terduga: {detail}"
+        return 1, []
     finally:
         if driver:
             if prompt_before_close:
