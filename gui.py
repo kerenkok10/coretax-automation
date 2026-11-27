@@ -478,7 +478,7 @@ class CoretaxApp:
             self.status_var.set("Selesai")
             messagebox.showinfo(APP_TITLE, "Proses selesai.")
         elif exit_code == 2:
-            self.status_var.set("Login gagal")
+            self.status_var.set("Login gagal: NIK atau password salah")
             messagebox.showerror(APP_TITLE, (error or "NIK atau password salah.") + "\n\nPerbaiki NIK / Password di form, lalu coba lagi.")
         else:
             self.status_var.set("Gagal. Cek log proses.")

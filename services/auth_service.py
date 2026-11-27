@@ -76,7 +76,7 @@ def login(driver: webdriver.Chrome) -> bool:
         alert = login_alert_text(driver)
         if alert and not login_succeeded(driver):
             if is_credential_error(alert):
-                raise InvalidCredentialsError(f"NIK atau password ditolak Coretax: \"{alert}\"")
+                raise InvalidCredentialsError(f"NIK atau password salah. Coretax menjawab: \"{alert}\"")
             raise LoginError(f"Coretax menolak login: \"{alert}\"")
         log.info("Login berhasil.")
 
@@ -129,8 +129,10 @@ def login_alert_text(driver: webdriver.Chrome) -> str:
         seen.extend(str(x).strip() for x in json.loads(raw) if str(x).strip())
     except (ValueError, TypeError):
         pass
+    if seen:
+        return " ".join(seen)
     for m in driver.find_elements(By.CSS_SELECTOR, ALERT_SELECTORS):
-        text = m.text.strip()
+        text = m.text.strip().replace("\n", " ")
         if text and text not in seen:
             seen.append(text)
     return " ".join(seen)
