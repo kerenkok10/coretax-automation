@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 
 from selenium import webdriver
@@ -71,9 +72,9 @@ def login(driver: webdriver.Chrome) -> bool:
             )
         ).click()
         log.info("ALTCHA terverifikasi, login dikirim otomatis.")
-        wait.until(lambda current_driver: is_logged_in(current_driver) or login_alert_text(current_driver))
+        wait.until(lambda d: login_succeeded(d) or login_alert_text(d))
         alert = login_alert_text(driver)
-        if alert and not is_logged_in(driver):
+        if alert and not login_succeeded(driver):
             if is_credential_error(alert):
                 raise InvalidCredentialsError(f"NIK atau password ditolak Coretax: \"{alert}\"")
             raise LoginError(f"Coretax menolak login: \"{alert}\"")
@@ -98,13 +99,41 @@ def require_tenant(driver: webdriver.Chrome) -> None:
         raise LoginError(f"Tenant '{target}' tidak ditemukan atau gagal dipilih. Cek Tenant Name dan Tenant NPWP.")
 
 
+ALERT_SELECTORS = (
+    ".coretax-login-alert #validationSummary, .coretax-login-alert #errorMessage, "
+    ".coretax-login-alert, .validation-summary-errors, .field-validation-error, "
+    ".alert-danger, .alert-error, .text-danger, [role='alert']"
+)
+
+
+def on_login_page(driver: webdriver.Chrome) -> bool:
+    return "account/login" in driver.current_url.lower()
+
+
+def login_succeeded(driver: webdriver.Chrome) -> bool:
+    """Berhasil hanya kalau sudah meninggalkan halaman login (navbar bisa ada di halaman login)."""
+    return not on_login_page(driver) and is_logged_in(driver)
+
+
 def login_alert_text(driver: webdriver.Chrome) -> str:
     """Teks pesan error yang ditampilkan Coretax di halaman login (kosong kalau tidak ada)."""
-    messages = driver.find_elements(
-        By.CSS_SELECTOR,
-        ".coretax-login-alert #validationSummary, .coretax-login-alert #errorMessage",
+    if not on_login_page(driver):
+        return ""
+    seen: list[str] = []
+    # Coretax menyimpan pesan error sebagai JSON di <script id="coretaxValidationErrors">;
+    # toast di layar hilang setelah beberapa detik, script ini tidak.
+    raw = driver.execute_script(
+        "return document.getElementById('coretaxValidationErrors')?.textContent || ''"
     )
-    return " ".join(m.text.strip() for m in messages if m.text.strip())
+    try:
+        seen.extend(str(x).strip() for x in json.loads(raw) if str(x).strip())
+    except (ValueError, TypeError):
+        pass
+    for m in driver.find_elements(By.CSS_SELECTOR, ALERT_SELECTORS):
+        text = m.text.strip()
+        if text and text not in seen:
+            seen.append(text)
+    return " ".join(seen)
 
 
 def is_credential_error(text: str) -> bool:
