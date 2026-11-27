@@ -252,7 +252,7 @@ class CoretaxApp:
         self._path_entry(tab, "Folder PDF Faktur", "rename_dir", 0, self._browse_rename_dir)
         ttk.Label(
             tab,
-            text="Format: FP-<Customer ID>-<No Invoice>.pdf   contoh: FP-CUST001-CMP1800480_1126.pdf",
+            text="Format: FP-<Customer ID>-<No Invoice>.pdf   contoh: FP-CUST001-INV0001_1126.pdf",
             style="Hint.TLabel",
             justify="left",
         ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 10))

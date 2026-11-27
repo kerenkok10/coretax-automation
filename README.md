@@ -8,6 +8,7 @@
 ![Python](https://img.shields.io/badge/python-3.x-0b5cad?logo=python&logoColor=white)
 ![Selenium](https://img.shields.io/badge/selenium-4.18%2B-43b02a?logo=selenium&logoColor=white)
 ![Chrome](https://img.shields.io/badge/requires-Chrome-4285f4?logo=googlechrome&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
 [![Release](https://img.shields.io/github/v/release/kerenkok10/coretax-automation?color=0b5cad&logo=github&logoColor=white)](../../releases/latest)
 
 <br>
@@ -186,7 +187,7 @@ FP-<Customer ID>-<No Invoice>.pdf
 
 - NPWP pembeli, nama pembeli, dan `Referensi` (No Invoice) dibaca langsung dari teks PDF.
 - Customer ID (angka `id`) diambil dari service customer berdasarkan NPWP pembeli, memakai `API Key` yang sama dengan OCR (URL-nya berbeda).
-- Karakter yang tidak boleh di nama file (`/ \ : * ? " < > |`) dan spasi diganti `_`. Contoh `CMP1800480/1126` jadi `CMP1800480_1126`.
+- Karakter yang tidak boleh di nama file (`/ \ : * ? " < > |`) dan spasi diganti `_`. Contoh `INV0001/1126` jadi `INV0001_1126`.
 - File berawalan `FP-` dilewati. Nama bentrok diberi akhiran `_2`, `_3`, ...
 - File yang gagal tidak diubah dan muncul di popup.
 
@@ -280,3 +281,7 @@ Struktur singkat:
 - Jangan kirim source ke pengguna akhir; cukup zip hasil build atau halaman Release.
 - Jika build gagal karena `py` tidak dikenali, install ulang Python Windows dan centang "Add Python to PATH".
 - Aplikasi butuh Chrome karena login Coretax memakai browser.
+
+## Lisensi
+
+[MIT](LICENSE). Bebas dipakai, diubah, dan dibagikan; tanpa jaminan apa pun.

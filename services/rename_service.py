@@ -173,13 +173,13 @@ if __name__ == "__main__":
     sample = (
         "Pengusaha Kena Pajak:\nNPWP : 0000000000000000\n"
         "Pembeli Barang Kena Pajak/Penerima Jasa Kena Pajak:\nNama : PT MAJU\nJAYA\nAlamat : JL X\nNPWP : 0955519814025000\n"
-        "...\n(Referensi: CMP1800480/1126)\n"
+        "...\n(Referensi: INV0001/1126)\n"
     )
-    assert parse_faktur_text(sample) == ("0955519814025000", "CMP1800480/1126", "PT MAJU JAYA", "0955519814025000")
+    assert parse_faktur_text(sample) == ("0955519814025000", "INV0001/1126", "PT MAJU JAYA", "0955519814025000")
     no_npwp = sample.replace("NPWP : 0955519814025000", "NPWP : 0000000000000000")
     assert parse_faktur_text(no_npwp)[0] is None and parse_faktur_text(no_npwp)[3] == "0000000000000000"
     assert parse_faktur_text(sample.replace("NPWP : 0955519814025000", "NPWP : -"))[:1] == (None,)
-    assert safe_part("CMP1800480/1126") == "CMP1800480_1126"
+    assert safe_part("INV0001/1126") == "INV0001_1126"
     assert safe_part("PT MAJU: JAYA") == "PT_MAJU__JAYA"
 
     closed = {"id": "1", "name": "PT MAJU JAYA", "status": "closed"}
