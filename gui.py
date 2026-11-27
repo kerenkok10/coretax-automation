@@ -198,7 +198,7 @@ class CoretaxApp:
         self._path_entry(tab, "Download Folder (lokal / OneDrive)", "download_dir", 3, self._browse_download_dir)
         ttk.Label(
             tab,
-            text="Kosongkan Download Folder untuk default Downloads\\CoretaxSlips. Folder OneDrive yang tersinkron juga bisa dipakai.",
+            text="Kosongkan Download Folder untuk default folder Downloads/CoretaxSlips. Folder OneDrive yang tersinkron juga bisa dipakai.",
             style="Hint.TLabel",
             wraplength=640,
             justify="left",
@@ -230,7 +230,7 @@ class CoretaxApp:
         self._path_entry(tab, "Download Folder (lokal / OneDrive)", "faktur_download_dir", 2, self._browse_faktur_dir)
         ttk.Label(
             tab,
-            text="Kosongkan folder untuk default Downloads\\CoretaxFaktur. Faktur yang sudah pernah didownload dilewati.",
+            text="Kosongkan folder untuk default folder Downloads/CoretaxFaktur. Faktur yang sudah pernah didownload dilewati.",
             style="Hint.TLabel",
             justify="left",
         ).grid(row=3, column=0, columnspan=3, sticky="w", pady=(2, 8))

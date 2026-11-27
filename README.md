@@ -4,7 +4,7 @@
 
 **Download bukti potong & faktur pajak keluaran dari Coretax DJP secara otomatis, lalu rename faktur sesuai Customer ID.**
 
-![Platform](https://img.shields.io/badge/platform-Windows-0b5cad?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0yIDMuNSAxMC41IDIuM3Y4LjRIMnpNMTEuNSAyLjIgMjIgLjd2MTBIMTEuNXpNMiAxMS43aDguNXY4LjRMMiAxOXpNMTEuNSAxMS43SDIydjExLjZsLTEwLjUtMS41eiIvPjwvc3ZnPg==)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0b5cad?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0yIDMuNSAxMC41IDIuM3Y4LjRIMnpNMTEuNSAyLjIgMjIgLjd2MTBIMTEuNXpNMiAxMS43aDguNXY4LjRMMiAxOXpNMTEuNSAxMS43SDIydjExLjZsLTEwLjUtMS41eiIvPjwvc3ZnPg==)
 ![Python](https://img.shields.io/badge/python-3.x-0b5cad?logo=python&logoColor=white)
 ![Selenium](https://img.shields.io/badge/selenium-4.18%2B-43b02a?logo=selenium&logoColor=white)
 ![Chrome](https://img.shields.io/badge/requires-Chrome-4285f4?logo=googlechrome&logoColor=white)
@@ -59,6 +59,9 @@ Panel **Akun Coretax & API** dipakai oleh semua tab.
 
 Alamat server OCR dan service customer tidak tampil di form. Isi `ocr_api_url` dan `customer_api_url` di `config.json` satu kali sebelum memakai OCR atau Rename Faktur.
 
+> [!IMPORTANT]
+> `ocr_api_url` dan `customer_api_url` **harus diganti dengan API internal perusahaan kamu sendiri**. Nilai default sengaja dikosongkan; jangan isi dengan alamat server milik pihak lain. Kontrak API yang diharapkan ada di bagian *Detail Fitur*.
+
 ### 3. Pilih tab sesuai kebutuhan
 
 <details open>
@@ -67,7 +70,7 @@ Alamat server OCR dan service customer tidak tampil di form. Isi `ocr_api_url` d
 1. Isi **Periode**, contoh `Januari 2026`.
 2. Kosongkan **Nomor Pemotongan** untuk download semua, atau isi satu/lebih nomor dipisah koma.
 3. Pilih **Jumlah Download** (`all`, 50, 100, 200, 500).
-4. Pilih **Download Folder**, atau kosongkan untuk `Downloads\CoretaxSlips`.
+4. Pilih **Download Folder**, atau kosongkan untuk folder `Downloads/CoretaxSlips`.
 5. Klik **Mulai Download**. Chrome terbuka dan login otomatis; jangan ditutup sampai selesai.
 6. Selesai ditandai popup. **Stop** menghentikan proses setelah download yang sedang berjalan selesai.
 
@@ -77,7 +80,7 @@ Alamat server OCR dan service customer tidak tampil di form. Isi `ocr_api_url` d
 <summary><b>📄 Download Faktur Pajak Keluaran</b></summary>
 
 1. Isi **Periode** (bulan dan tahun faktur) dan **Jumlah Download**.
-2. Pilih **Download Folder**, atau kosongkan untuk `Downloads\CoretaxFaktur`.
+2. Pilih **Download Folder**, atau kosongkan untuk folder `Downloads/CoretaxFaktur`.
 3. Klik **Mulai Download**. Aplikasi membuka e-Faktur > Pajak Keluaran, menekan Refresh, lalu mendownload PDF tiap faktur.
 4. Faktur yang sudah pernah didownload dan baris draft tanpa nomor faktur dilewati otomatis.
 
@@ -133,7 +136,7 @@ Nomor dicari satu per satu. Nomor yang tidak ada di periode tersebut dicatat di 
 <details>
 <summary><b>Download Folder & OneDrive</b></summary>
 
-Hasil default tersimpan di `Downloads\CoretaxSlips` (bukti potong) dan `Downloads\CoretaxFaktur` (faktur).
+Hasil default tersimpan di folder `Downloads/CoretaxSlips` (bukti potong) dan `Downloads/CoretaxFaktur` (faktur) milik user.
 
 `Download Folder` menerima folder lokal maupun folder OneDrive yang sudah tersinkron di komputer, jadi hasil download bisa langsung ikut sync. Tombol `Browse` otomatis membuka folder OneDrive kalau ada. Variable juga boleh dipakai:
 
@@ -160,11 +163,14 @@ Jika folder download diganti, history skip ikut bergantung ke folder baru itu.
 <details>
 <summary><b>OCR PDF ke Excel (API)</b></summary>
 
-OCR dijalankan lewat server OCR yang kamu sediakan sendiri. Isi `ocr_api_url` di `config.json`; fitur OCR tidak jalan kalau kosong.
+Fitur ini memanggil **server OCR milikmu sendiri**. Isi `ocr_api_url` di `config.json` dengan API internal perusahaan; fitur tidak jalan kalau kosong. Kontrak yang diharapkan:
 
 ```text
-POST /api/v1/ocr/api-key/download-excel
-x-api-key: <api_key>
+POST <ocr_api_url>/api/v1/ocr/api-key/download-excel
+x-api-key: <API Key>
+Content-Type: multipart/form-data   (field "file" = zip berisi PDF bukti potong)
+
+Response 200: isi file Excel (.xlsm) langsung sebagai body
 ```
 
 </details>
@@ -184,12 +190,17 @@ FP-<Customer ID>-<No Invoice>.pdf
 - File berawalan `FP-` dilewati. Nama bentrok diberi akhiran `_2`, `_3`, ...
 - File yang gagal tidak diubah dan muncul di popup.
 
-Isi `customer_api_url` (base URL service customer) di `config.json`. Aplikasi memanggil:
+Isi `customer_api_url` (base URL service customer) di `config.json` dengan **API internal perusahaan kamu sendiri**; fitur tidak jalan kalau kosong. Kontrak yang diharapkan:
 
 ```text
-GET <customer_api_url>/external/coretax/by-npwp?npwp=<npwp>
+GET <customer_api_url>/external/coretax/by-npwp?npwp=<npwp pembeli>
 APIKEY: <API Key>
+
+Response 200 (JSON): {"data": [{"id": 123, "name": "PT Contoh", "status": "active"}, ...]}
+Tidak ada yang cocok: list kosong atau HTTP 404
 ```
+
+`id` dipakai sebagai Customer ID. `name` dan `status` dipakai untuk memilih bila NPWP cocok ke beberapa customer.
 
 Jika satu NPWP cocok ke beberapa customer:
 
@@ -219,6 +230,22 @@ File dibuat otomatis dari `config.template.json` dan disimpan setiap form diisi.
 </details>
 
 ---
+
+## Mac / Linux
+
+Release hanya berisi build Windows. Di macOS/Linux jalankan dari source, atau build sendiri.
+
+Kebutuhan: Python 3, Google Chrome, dan Tk (Linux: `sudo apt install python3-tk python3-venv`, macOS: `brew install python-tk`).
+
+```bash
+python3 -m venv venv
+venv/bin/pip install -r requirements.txt
+venv/bin/python gui.py
+```
+
+Untuk membuat aplikasi mandiri: `./build_mac_linux.sh` (hasil di `dist/CoretaxSlip`).
+
+> Dukungan Mac/Linux belum diuji penuh; Windows adalah platform yang diuji.
 
 ## Untuk Developer: Build `.exe`
 
