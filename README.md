@@ -1,6 +1,6 @@
 <div align="center">
 
-# Coretax Slip Downloader
+# Coretax Automation
 
 **Download bukti potong & faktur pajak keluaran dari Coretax DJP secara otomatis, lalu rename faktur sesuai Customer ID.**
 

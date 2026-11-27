@@ -9,7 +9,7 @@ from tkinter import ttk
 from utils.paths import onedrive_root, resolve_dir
 
 
-APP_TITLE = "Coretax Slip Downloader"
+APP_TITLE = "Coretax Automation"
 DEFAULT_URL = "https://coretaxdjp.pajak.go.id/identityproviderportal/Account/Login"
 ACCENT = "#0b5cad"
 ACCENT_DARK = "#08467f"
@@ -232,6 +232,7 @@ class CoretaxApp:
             tab,
             text="Kosongkan folder untuk default folder Downloads/CoretaxFaktur. Faktur yang sudah pernah didownload dilewati.",
             style="Hint.TLabel",
+            wraplength=640,
             justify="left",
         ).grid(row=3, column=0, columnspan=3, sticky="w", pady=(2, 8))
         action_bar = ttk.Frame(tab)
