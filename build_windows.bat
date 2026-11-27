@@ -7,8 +7,8 @@ py -3 -m venv venv || goto :error
 "venv\Scripts\python.exe" -m pip install -r requirements.txt pyinstaller || goto :error
 
 if exist "build" rmdir /s /q "build"
-if exist "dist\CoretaxSlip" rmdir /s /q "dist\CoretaxSlip"
-"venv\Scripts\pyinstaller.exe" --clean --onedir --name CoretaxSlip --windowed ^
+if exist "dist\coretax-automation" rmdir /s /q "dist\coretax-automation"
+"venv\Scripts\pyinstaller.exe" --clean --onedir --name coretax-automation --windowed ^
   --hidden-import selenium.webdriver.chrome.webdriver ^
   --hidden-import selenium.webdriver.chrome.service ^
   --hidden-import selenium.webdriver.chrome.options ^
@@ -16,16 +16,16 @@ if exist "dist\CoretaxSlip" rmdir /s /q "dist\CoretaxSlip"
   --hidden-import selenium.webdriver.common.driver_finder ^
   gui.py || goto :error
 
-copy /Y config.template.json "dist\CoretaxSlip\config.template.json" >nul
-if not exist "dist\CoretaxSlip\config.json" copy /Y config.template.json "dist\CoretaxSlip\config.json" >nul
+copy /Y config.template.json "dist\coretax-automation\config.template.json" >nul
+if not exist "dist\coretax-automation\config.json" copy /Y config.template.json "dist\coretax-automation\config.json" >nul
 if exist "finance-release" rmdir /s /q "finance-release"
 mkdir "finance-release" || goto :error
-xcopy /E /I /Y "dist\CoretaxSlip" "finance-release\CoretaxSlip" >nul || goto :error
+xcopy /E /I /Y "dist\coretax-automation" "finance-release\coretax-automation" >nul || goto :error
 
 echo.
 echo Build selesai.
-echo Folder siap kirim ada di: finance-release\CoretaxSlip
-echo Finance cukup buka CoretaxSlip.exe dari folder itu. Tidak perlu install Python.
+echo Folder siap kirim ada di: finance-release\coretax-automation
+echo Finance cukup buka coretax-automation.exe dari folder itu. Tidak perlu install Python.
 echo Finance isi NIK, password, periode, dan tenant langsung dari tampilan aplikasi.
 popd
 pause

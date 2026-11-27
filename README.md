@@ -39,9 +39,9 @@ Tidak perlu install Python. Yang dibutuhkan hanya **Windows** dan **Google Chrom
 
 ### 1. Install
 
-1. Buka [Releases](../../releases/latest), download `CoretaxSlip-vX.Y.Z-windows.zip`.
-2. Klik kanan zip, **Extract All**, simpan ke folder yang mudah dibuka (contoh `C:\CoretaxSlip`).
-3. Double click **`CoretaxSlip.exe`**.
+1. Buka [Releases](../../releases/latest), download `coretax-automation.zip`.
+2. Klik kanan zip, **Extract All**, simpan ke folder yang mudah dibuka (contoh `C:\coretax-automation`).
+3. Buka folder `coretax-automation`, double click **`coretax-automation.exe`**.
 4. Jika muncul peringatan Windows "protected your PC": klik **More info**, lalu **Run anyway**.
 
 > [!WARNING]
@@ -243,7 +243,7 @@ venv/bin/pip install -r requirements.txt
 venv/bin/python gui.py
 ```
 
-Untuk membuat aplikasi mandiri: `./build_mac_linux.sh` (hasil di `dist/CoretaxSlip`).
+Untuk membuat aplikasi mandiri: `./build_mac_linux.sh` (hasil di `dist/coretax-automation`).
 
 > Dukungan Mac/Linux belum diuji penuh; Windows adalah platform yang diuji.
 
@@ -257,7 +257,7 @@ Kebutuhan: Python 3 Windows dari python.org (centang "Add Python to PATH"), Goog
 build_windows.bat
 ```
 
-Hasil build ada di `finance-release\CoretaxSlip`. Zip folder itu untuk dibagikan.
+Hasil build ada di `finance-release\coretax-automation`. Zip folder itu untuk dibagikan.
 
 Jalankan dari source:
 
