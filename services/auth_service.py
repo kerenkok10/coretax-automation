@@ -15,8 +15,12 @@ from services.session_service import load_session, save_session
 log = get_logger(__name__)
 
 
-class InvalidCredentialsError(Exception):
-    pass
+class LoginError(Exception):
+    """Login gagal; pesan dipakai langsung sebagai alasan yang tampil ke user."""
+
+
+class InvalidCredentialsError(LoginError):
+    """NIK / kata sandi ditolak Coretax."""
 
 
 def login(driver: webdriver.Chrome) -> bool:
@@ -28,16 +32,14 @@ def login(driver: webdriver.Chrome) -> bool:
 
     if load_session(driver) and is_logged_in(driver):
         log.info("Session lama masih valid.")
-        if not ensure_target_tenant(driver):
-            return False
+        require_tenant(driver)
         save_session(driver)
         return True
 
     try:
         if is_logged_in(driver):
             log.info("Session sudah login.")
-            if not ensure_target_tenant(driver):
-                return False
+            require_tenant(driver)
             save_session(driver)
             return True
 
@@ -58,7 +60,10 @@ def login(driver: webdriver.Chrome) -> bool:
 
         if not verify_altcha(driver):
             log.error("ALTCHA otomatis gagal.")
-            return False
+            raise LoginError(
+                f"Verifikasi captcha (ALTCHA) gagal setelah {settings.captcha_retry} percobaan. "
+                "Coba lagi; kalau terus gagal, periksa koneksi internet."
+            )
 
         wait.until(
             EC.element_to_be_clickable(
@@ -66,33 +71,45 @@ def login(driver: webdriver.Chrome) -> bool:
             )
         ).click()
         log.info("ALTCHA terverifikasi, login dikirim otomatis.")
-        wait.until(
-            lambda current_driver: is_logged_in(current_driver)
-            or has_invalid_credentials(current_driver)
-        )
-        if has_invalid_credentials(driver):
-            raise InvalidCredentialsError
+        wait.until(lambda current_driver: is_logged_in(current_driver) or login_alert_text(current_driver))
+        alert = login_alert_text(driver)
+        if alert and not is_logged_in(driver):
+            if is_credential_error(alert):
+                raise InvalidCredentialsError(f"NIK atau password ditolak Coretax: \"{alert}\"")
+            raise LoginError(f"Coretax menolak login: \"{alert}\"")
         log.info("Login berhasil.")
 
-        if not ensure_target_tenant(driver):
-            return False
+        require_tenant(driver)
         save_session(driver)
         return True
     except TimeoutException:
         log.error("Timeout saat login otomatis.")
-        return False
+        alert = login_alert_text(driver)
+        raise LoginError(
+            f"Login tidak mendapat respons dari Coretax dalam {settings.selenium_timeout} detik"
+            + (f" (pesan di halaman: \"{alert}\")" if alert else "")
+            + ". Periksa koneksi internet atau coba lagi."
+        ) from None
 
 
-def has_invalid_credentials(driver: webdriver.Chrome) -> bool:
+def require_tenant(driver: webdriver.Chrome) -> None:
+    if not ensure_target_tenant(driver):
+        target = settings.tenant_name or settings.tenant_npwp
+        raise LoginError(f"Tenant '{target}' tidak ditemukan atau gagal dipilih. Cek Tenant Name dan Tenant NPWP.")
+
+
+def login_alert_text(driver: webdriver.Chrome) -> str:
+    """Teks pesan error yang ditampilkan Coretax di halaman login (kosong kalau tidak ada)."""
     messages = driver.find_elements(
         By.CSS_SELECTOR,
         ".coretax-login-alert #validationSummary, .coretax-login-alert #errorMessage",
     )
-    return any(
-        "kata sandi" in message.text.casefold()
-        and ("tidak valid" in message.text.casefold() or "salah" in message.text.casefold())
-        for message in messages
-    )
+    return " ".join(m.text.strip() for m in messages if m.text.strip())
+
+
+def is_credential_error(text: str) -> bool:
+    low = text.casefold()
+    return ("kata sandi" in low or "password" in low) and ("tidak valid" in low or "salah" in low or "invalid" in low)
 
 
 def verify_altcha(driver: webdriver.Chrome) -> bool:
