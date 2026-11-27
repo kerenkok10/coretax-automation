@@ -8,7 +8,7 @@
 ![Python](https://img.shields.io/badge/python-3.x-0b5cad?logo=python&logoColor=white)
 ![Selenium](https://img.shields.io/badge/selenium-4.18%2B-43b02a?logo=selenium&logoColor=white)
 ![Chrome](https://img.shields.io/badge/requires-Chrome-4285f4?logo=googlechrome&logoColor=white)
-[![Release](https://img.shields.io/github/v/release/kerenkok10/withholding-slip-coretax?color=0b5cad&logo=github&logoColor=white)](../../releases/latest)
+[![Release](https://img.shields.io/github/v/release/kerenkok10/coretax-automation?color=0b5cad&logo=github&logoColor=white)](../../releases/latest)
 
 <br>
 
