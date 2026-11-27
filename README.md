@@ -2,6 +2,22 @@
 
 Tool GUI untuk login ke Coretax DJP dan download bukti potong PDF berdasarkan periode.
 
+## Tampilan
+
+Bagian atas (**Akun Coretax & API**) dipakai bersama oleh semua tab. Fitur dibagi tiga tab.
+
+**Bukti Potong**: download bukti potong eBupot per periode, plus OCR PDF ke Excel.
+
+![Tab Bukti Potong](docs/bukti-potong.png)
+
+**Faktur Keluaran**: download PDF Faktur Pajak Keluaran (e-Faktur > Pajak Keluaran) per masa dan tahun.
+
+![Tab Faktur Keluaran](docs/faktur-keluaran.png)
+
+**Rename Faktur**: ganti nama PDF faktur menjadi `FP-<Customer ID>-<No Invoice>.pdf`.
+
+![Tab Rename Faktur](docs/rename-faktur.png)
+
 ## Untuk Build .exe
 
 Build harus dilakukan dari Windows, bukan WSL, supaya hasilnya benar-benar file `.exe`.

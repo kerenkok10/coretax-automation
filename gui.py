@@ -200,6 +200,8 @@ class CoretaxApp:
             tab,
             text="Kosongkan Download Folder untuk default Downloads\\CoretaxSlips. Folder OneDrive yang tersinkron juga bisa dipakai.",
             style="Hint.TLabel",
+            wraplength=640,
+            justify="left",
         ).grid(row=4, column=0, columnspan=3, sticky="w", pady=(2, 8))
 
         action_bar = ttk.Frame(tab)
