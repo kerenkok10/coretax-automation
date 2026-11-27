@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 
 from selenium import webdriver
@@ -11,6 +13,10 @@ from helpers.logger import get_logger
 from services.session_service import load_session, save_session
 
 log = get_logger(__name__)
+
+
+class InvalidCredentialsError(Exception):
+    pass
 
 
 def login(driver: webdriver.Chrome) -> bool:
@@ -50,11 +56,22 @@ def login(driver: webdriver.Chrome) -> bool:
         pwd_el.clear()
         pwd_el.send_keys(settings.password)
 
-        log.info(
-            "Username dan password sudah diisi. Selesaikan ALTCHA dan klik login langsung di browser."
+        if not verify_altcha(driver):
+            log.error("ALTCHA otomatis gagal.")
+            return False
+
+        wait.until(
+            EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, "button[type='submit'], input[type='submit'], .btn-login")
+            )
+        ).click()
+        log.info("ALTCHA terverifikasi, login dikirim otomatis.")
+        wait.until(
+            lambda current_driver: is_logged_in(current_driver)
+            or has_invalid_credentials(current_driver)
         )
-        wait = WebDriverWait(driver, settings.selenium_timeout * 30)
-        wait.until(lambda current_driver: is_logged_in(current_driver))
+        if has_invalid_credentials(driver):
+            raise InvalidCredentialsError
         log.info("Login berhasil.")
 
         if not ensure_target_tenant(driver):
@@ -62,7 +79,44 @@ def login(driver: webdriver.Chrome) -> bool:
         save_session(driver)
         return True
     except TimeoutException:
-        log.error("Timeout menunggu login manual selesai.")
+        log.error("Timeout saat login otomatis.")
+        return False
+
+
+def has_invalid_credentials(driver: webdriver.Chrome) -> bool:
+    messages = driver.find_elements(
+        By.CSS_SELECTOR,
+        ".coretax-login-alert #validationSummary, .coretax-login-alert #errorMessage",
+    )
+    return any(
+        "kata sandi" in message.text.casefold()
+        and ("tidak valid" in message.text.casefold() or "salah" in message.text.casefold())
+        for message in messages
+    )
+
+
+def verify_altcha(driver: webdriver.Chrome) -> bool:
+    wait = WebDriverWait(driver, settings.selenium_timeout)
+    try:
+        widget = wait.until(
+            lambda current_driver: current_driver.execute_script(
+                "const w=document.querySelector('altcha-widget');"
+                "return typeof w?.verify==='function' ? w : false;"
+            )
+        )
+        for attempt in range(1, settings.captcha_retry + 1):
+            driver.execute_script("arguments[0].verify();", widget)
+            try:
+                wait.until(
+                    lambda current_driver: current_driver.execute_script(
+                        "return arguments[0].getState?.() === 'verified';", widget
+                    )
+                )
+                return True
+            except TimeoutException:
+                log.warning("ALTCHA belum terverifikasi (%s/%s).", attempt, settings.captcha_retry)
+        return False
+    except TimeoutException:
         return False
 
 

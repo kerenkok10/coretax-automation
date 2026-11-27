@@ -6,6 +6,8 @@ py -3 -m venv venv || goto :error
 "venv\Scripts\python.exe" -m pip install --upgrade pip || goto :error
 "venv\Scripts\python.exe" -m pip install -r requirements.txt pyinstaller || goto :error
 
+if exist "build" rmdir /s /q "build"
+if exist "dist\CoretaxSlip" rmdir /s /q "dist\CoretaxSlip"
 "venv\Scripts\pyinstaller.exe" --clean --onedir --name CoretaxSlip --windowed ^
   --hidden-import selenium.webdriver.chrome.webdriver ^
   --hidden-import selenium.webdriver.chrome.service ^

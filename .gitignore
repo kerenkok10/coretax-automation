@@ -26,3 +26,6 @@ venv.bak/
 
 # User config
 config.json
+
+# Windows/WSL
+*:Zone.Identifier

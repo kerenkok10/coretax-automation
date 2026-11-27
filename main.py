@@ -19,17 +19,30 @@ def run_app(
     *,
     prompt_period: bool = False,
     prompt_before_close: bool = False,
-) -> int:
-    from core.settings import settings
-    from services.auth_service import login
-    from services.download_service import search_and_download, wait_for_downloads
-    from services.navigation_service import navigate_to_withholding
+    mode: str = "bupot",
+) -> tuple[int, list[str]]:
+    """Return (exit code, daftar Nomor Pemotongan yang tidak ditemukan)."""
+    from core.settings import reload_settings
+    from services.auth_service import InvalidCredentialsError, login
+    from services.download_service import search_and_download, search_and_download_output_tax, wait_for_downloads
+    from services.navigation_service import navigate_to_output_tax, navigate_to_withholding
     from utils.driver_utils import create_driver
 
+    settings = reload_settings()
     if target_period:
         settings.set_target_period(target_period)
     elif prompt_period:
         prompt_target_period(settings)
+
+    if mode == "faktur":
+        settings.download_dir = settings.faktur_download_dir
+        settings.download_dir.mkdir(parents=True, exist_ok=True)
+        settings.withholding_slips_number = None
+    navigate, search = (
+        (navigate_to_output_tax, search_and_download_output_tax)
+        if mode == "faktur"
+        else (navigate_to_withholding, search_and_download)
+    )
 
     settings.display()
 
@@ -38,11 +51,11 @@ def run_app(
         driver = create_driver()
 
         if not login(driver):
-            return 1
-        if not navigate_to_withholding(driver):
-            return 1
+            return 1, []
+        if not navigate(driver):
+            return 1, []
 
-        count = search_and_download(driver)
+        count, not_found = search(driver)
 
         if count > 0:
             wait_for_downloads()
@@ -50,10 +63,13 @@ def run_app(
         else:
             log.warning("Tidak ada file yang didownload.")
 
-        return 0
+        return 0, not_found
+    except InvalidCredentialsError:
+        log.error("Username atau password salah.")
+        return 2, []
     except Exception as exc:
         log.error("Error tidak terduga: %s", exc, exc_info=True)
-        return 1
+        return 1, []
     finally:
         if driver:
             if prompt_before_close:

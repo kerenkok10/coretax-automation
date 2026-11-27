@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
+from utils.paths import resolve_dir
+
 
 BASE_DIR = (
     Path(sys.executable).resolve().parent
@@ -51,9 +53,20 @@ def _optional_int(config: dict[str, Any], key: str, default: int = 0) -> int:
         return default
 
 
-def _resolve_download_dir(config: dict[str, Any]) -> Path:
-    raw = _optional_str(config, "download_dir")
-    return Path(raw).expanduser().resolve() if raw else Path.home() / "Downloads" / "CoretaxSlips"
+def _resolve_download_dir(config: dict[str, Any], key: str = "download_dir", default: str = "CoretaxSlips") -> Path:
+    raw = _optional_str(config, key)
+    return resolve_dir(raw) if raw else Path.home() / "Downloads" / default
+
+
+def _resolve_download_limit(config: dict[str, Any]) -> int | None:
+    raw = _optional_str(config, "download_limit", "all").casefold()
+    if raw in ("", "all", "semua"):
+        return None
+    try:
+        limit = int(raw)
+        return limit if limit > 0 else None
+    except ValueError:
+        return None
 
 
 @dataclass
@@ -62,9 +75,12 @@ class Settings:
     password: str
     url: str
     target_period: str
+    withholding_slips_number: Optional[str]
+    download_limit: int | None
     tenant_name: Optional[str]
     tenant_npwp: Optional[str]
     download_dir: Path
+    faktur_download_dir: Path
     session_file: Path
     browser_headless: bool
     selenium_timeout: int
@@ -84,6 +100,8 @@ class Settings:
             ("NIK", nik_masked),
             ("Password", "*" * len(self.password)),
             ("Target Periode", self.target_period),
+            ("Nomor Pemotongan", self.withholding_slips_number or "- (semua)"),
+            ("Download Limit", self.download_limit or "all"),
             ("Tenant Name", self.tenant_name or "-"),
             ("Tenant NPWP", self.tenant_npwp or "-"),
             ("Download Dir", self.download_dir),
@@ -92,12 +110,12 @@ class Settings:
             ("Timeout", f"{self.selenium_timeout}s"),
             ("Captcha Retry", f"{self.captcha_retry}x"),
         ]
-        print("─" * 48)
-        print("  Coretax DJP — Settings")
-        print("─" * 48)
+        print("-" * 48)
+        print("  Coretax DJP - Settings")
+        print("-" * 48)
         for label, value in lines:
             print(f"  {label:<16}: {value}")
-        print("─" * 48)
+        print("-" * 48)
 
     def set_target_period(self, period: str) -> None:
         value = period.strip()
@@ -116,14 +134,28 @@ def load_settings() -> Settings:
             "https://coretaxdjp.pajak.go.id/identityproviderportal/Account/Login",
         ),
         target_period=_optional_str(config, "target_period", "Januari 2026"),
+        withholding_slips_number=_optional_str(config, "withholding_slips_number") or None,
+        download_limit=_resolve_download_limit(config),
         tenant_name=_optional_str(config, "tenant_name") or None,
         tenant_npwp=_optional_str(config, "tenant_npwp") or None,
         download_dir=_resolve_download_dir(config),
+        faktur_download_dir=_resolve_download_dir(config, "faktur_download_dir", "CoretaxFaktur"),
         session_file=BASE_DIR / ".session" / "coretax_cookies.json",
         browser_headless=_optional_bool(config, "browser_headless", default=False),
         selenium_timeout=_optional_int(config, "selenium_timeout", default=20),
         captcha_retry=_optional_int(config, "captcha_retry", default=5),
     )
+
+
+def reload_settings() -> Settings:
+    global settings
+
+    fresh_settings = load_settings()
+    if "settings" in globals():
+        settings.__dict__.update(fresh_settings.__dict__)
+    else:
+        settings = fresh_settings
+    return settings
 
 
 settings = load_settings()
