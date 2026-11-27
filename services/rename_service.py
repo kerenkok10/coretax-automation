@@ -8,28 +8,40 @@ import urllib.parse
 import urllib.request
 from difflib import SequenceMatcher
 from pathlib import Path
+from typing import NamedTuple
 
 log = logging.getLogger(__name__)
 
 INVALID_CHARS = re.compile(r'[\\/:*?"<>|]+')
-BUYER_NPWP = re.compile(r"Pembeli Barang Kena Pajak.*?NPWP\s*:\s*(\d{15,16})", re.S)
+BUYER_NPWP = re.compile(r"Pembeli Barang Kena Pajak.*?NPWP\s*:[ \t]*([^\n]*)", re.S)
 BUYER_NAME = re.compile(r"Pembeli Barang Kena Pajak.*?Nama\s*:\s*(.+?)\s*\n\s*Alamat\s*:", re.S)
 COMPANY_WORDS = {"PT", "CV", "UD", "TBK", "PERSERO"}
 MIN_SIMILARITY = 0.85
 REFERENCE = re.compile(r"\(Referensi:\s*([^)]+?)\s*\)")
 
 
-def parse_faktur_text(text: str) -> tuple[str | None, str | None, str | None]:
-    """Return (NPWP pembeli, Referensi/No Invoice, nama pembeli) dari teks PDF faktur Coretax."""
+class Faktur(NamedTuple):
+    npwp: str | None  # NPWP pembeli (15-16 digit, bukan nol semua), None kalau kosong/tidak valid
+    ref: str | None  # Referensi = No Invoice
+    name: str | None  # nama pembeli
+    npwp_raw: str | None  # teks NPWP apa adanya di faktur (untuk pesan error)
+
+
+def parse_faktur_text(text: str) -> Faktur:
+    """Baca NPWP pembeli, Referensi/No Invoice, dan nama pembeli dari teks PDF faktur Coretax."""
     npwp, ref, name = BUYER_NPWP.search(text), REFERENCE.search(text), BUYER_NAME.search(text)
-    return (
-        npwp.group(1) if npwp else None,
+    raw = npwp.group(1).strip() if npwp else None
+    digits = re.sub(r"\D", "", raw or "")
+    valid = len(digits) in (15, 16) and set(digits) != {"0"}
+    return Faktur(
+        digits if valid else None,
         ref.group(1).strip() if ref else None,
         " ".join(name.group(1).split()) if name else None,
+        raw,
     )
 
 
-def extract_faktur_fields(pdf_path: Path) -> tuple[str | None, str | None, str | None]:
+def extract_faktur_fields(pdf_path: Path) -> Faktur:
     from pypdf import PdfReader
 
     text = "\n".join(page.extract_text() or "" for page in PdfReader(str(pdf_path)).pages)
@@ -38,6 +50,10 @@ def extract_faktur_fields(pdf_path: Path) -> tuple[str | None, str | None, str |
 
 def safe_part(value: str) -> str:
     return INVALID_CHARS.sub("_", value.strip()).replace(" ", "_")
+
+
+class ApiError(RuntimeError):
+    """Masalah API (koneksi / API Key): hentikan seluruh proses, bukan per file."""
 
 
 def lookup_customers(npwp: str, api_url: str, api_key: str) -> list[dict]:
@@ -53,7 +69,11 @@ def lookup_customers(npwp: str, api_url: str, api_key: str) -> list[dict]:
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             return []
-        raise RuntimeError(f"Customer API {exc.code}: {exc.read().decode('utf-8', errors='replace')}") from exc
+        if exc.code in (401, 403):
+            raise ApiError(f"API Key ditolak oleh API customer (HTTP {exc.code}). Cek kolom API Key.") from exc
+        raise ApiError(f"API customer error HTTP {exc.code}: {exc.read().decode('utf-8', errors='replace')[:200]}") from exc
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        raise ApiError(f"Tidak bisa terhubung ke API customer ({getattr(exc, 'reason', exc)}). Cek customer_api_url, jaringan, atau VPN.") from exc
 
     if isinstance(payload, dict):
         payload = payload.get("data", payload)
@@ -122,19 +142,25 @@ def rename_folder(pdf_dir: Path, api_url: str, api_key: str, should_stop=lambda:
             log.info("Rename dihentikan.")
             break
         try:
-            npwp, ref, buyer_name = extract_faktur_fields(pdf)
-            if not npwp or not ref:
-                raise ValueError("NPWP pembeli / Referensi tidak terbaca")
+            npwp, ref, buyer_name, npwp_raw = extract_faktur_fields(pdf)
+            who = f", pembeli: {buyer_name}" if buyer_name else ""
+            if not npwp:
+                shown = f"tertulis: {npwp_raw}" if npwp_raw else "tidak ada di faktur"
+                raise ValueError(f"NPWP pembeli kosong/tidak valid ({shown}){who}. Rename manual.")
+            if not ref:
+                raise ValueError(f"Referensi (No Invoice) tidak ditemukan di faktur{who}.")
             if npwp not in customers:
                 customers[npwp] = lookup_customers(npwp, api_url, api_key)
             customer_id = choose_customer(customers[npwp], buyer_name)
             if not customer_id:
-                raise ValueError(f"Customer ID tidak ditemukan untuk NPWP {npwp}")
+                raise ValueError(f"Customer dengan NPWP {npwp} tidak ditemukan di sistem{who}.")
 
             target = unique_path(pdf.with_name(f"FP-{safe_part(customer_id)}-{safe_part(ref)}.pdf"))
             pdf.rename(target)
             renamed += 1
             log.info("Rename: %s -> %s", pdf.name, target.name)
+        except ApiError:
+            raise
         except Exception as exc:
             failed.append(f"{pdf.name}: {exc}")
             log.warning("Gagal rename %s: %s", pdf.name, exc)
@@ -149,7 +175,10 @@ if __name__ == "__main__":
         "Pembeli Barang Kena Pajak/Penerima Jasa Kena Pajak:\nNama : PT MAJU\nJAYA\nAlamat : JL X\nNPWP : 0955519814025000\n"
         "...\n(Referensi: CMP1800480/1126)\n"
     )
-    assert parse_faktur_text(sample) == ("0955519814025000", "CMP1800480/1126", "PT MAJU JAYA")
+    assert parse_faktur_text(sample) == ("0955519814025000", "CMP1800480/1126", "PT MAJU JAYA", "0955519814025000")
+    no_npwp = sample.replace("NPWP : 0955519814025000", "NPWP : 0000000000000000")
+    assert parse_faktur_text(no_npwp)[0] is None and parse_faktur_text(no_npwp)[3] == "0000000000000000"
+    assert parse_faktur_text(sample.replace("NPWP : 0955519814025000", "NPWP : -"))[:1] == (None,)
     assert safe_part("CMP1800480/1126") == "CMP1800480_1126"
     assert safe_part("PT MAJU: JAYA") == "PT_MAJU__JAYA"
 
